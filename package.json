@@ -1,0 +1,29 @@
+{
+  "name": "create-react-web4-app",
+  "version": "1.0.0",
+  "description": "Create React apps with Web4 deployment scripts",
+  "main": "index.js",
+ "bin": {
+    "create-react-web4-app": "./bin/create-react-web4-app.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["react", "web3", "ethereum"],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "fs-extra": "^10.0.0"
+  },
+  "engines": {
+    "node": ">=14"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/create-react-web3-app.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/create-react-web3-app/issues"
+  },
+  "homepage": "https://github.com/yourusername/create-react-web3-app#readme"
+}
