@@ -1,15 +1,19 @@
 {
   "name": "create-react-web4-app",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Create React apps with Web4 deployment scripts",
   "main": "index.js",
- "bin": {
+  "bin": {
     "create-react-web4-app": "./bin/create-react-web4-app.js"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["react", "web3", "ethereum"],
+  "keywords": [
+    "react",
+    "web3",
+    "ethereum"
+  ],
   "author": "0xdevChris",
   "license": "MIT",
   "dependencies": {
