@@ -4,7 +4,7 @@
   "description": "Create React apps with Web4 deployment scripts",
   "main": "index.js",
   "bin": {
-    "create-react-web4-app": "./bin/create-react-web4-app.js"
+    "create-react-web4-app": "bin/create-react-web4-app.js"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -24,7 +24,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/create-react-web3-app.git"
+    "url": "git+https://github.com/yourusername/create-react-web3-app.git"
   },
   "bugs": {
     "url": "https://github.com/yourusername/create-react-web3-app/issues"
