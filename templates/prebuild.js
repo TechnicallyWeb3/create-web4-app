@@ -93,8 +93,8 @@ function replaceInFile(filePath, replacements) {
 }
 
 async function replaceAssetUrls() {
-  console.log('Starting to replace asset URLs in src directory...');
-  const assetFiles = glob.sync('src/**/*.{png,jpg,jpeg,gif,svg}');
+  console.log('Starting to replace asset URLs in src and public directories...');
+  const assetFiles = glob.sync('{src,public}/**/*.{png,jpg,jpeg,gif,svg,ico}');
   const replacements = {};
 
   for (const file of assetFiles) {
@@ -103,26 +103,75 @@ async function replaceAssetUrls() {
     replacements[path.basename(file)] = pinataUrl;
   }
 
-  const jsFiles = glob.sync('src/**/*.{js,jsx,ts,tsx}');
+  const jsFiles = glob.sync('{src,public}/**/*.{js,jsx,ts,tsx}');
   for (const file of jsFiles) {
-    console.log(`Updating asset URLs in ${file}...`);
-    let content = fs.readFileSync(file, 'utf8');
-    for (const [oldUrl, newUrl] of Object.entries(replacements)) {
-      // Replace import statements
-      const importRegex = new RegExp(`import\\s+(\\w+)\\s+from\\s+(['"]).*${oldUrl}(['"])`, 'g');
-      content = content.replace(importRegex, `const $1 = "${newUrl}"`);
-
-      // Replace src attributes in img tags, keeping src
-      const srcRegex = new RegExp(`src={([^}]*${oldUrl}[^}]*)}`, 'g');
-      content = content.replace(srcRegex, `src="${newUrl}"`);
-
-      // Replace other occurrences
-      content = content.replace(new RegExp(oldUrl, 'g'), newUrl);
+    try {
+      console.log(`Updating asset URLs in ${file}...`);
+      let content = fs.readFileSync(file, 'utf8');
+      
+      for (const [oldUrl, newUrl] of Object.entries(replacements)) {
+        const regex = new RegExp(oldUrl, 'g');
+        content = content.replace(regex, newUrl);
+      }
+      
+      fs.writeFileSync(file, content);
+      console.log(`Updated asset URLs in ${file}`);
+      
+      // Call the updated function to check and correct import/const order
+      checkAndCorrectOrder(file);
+    } catch (error) {
+      console.error(`Error processing file ${file}:`, error.message);
     }
-    fs.writeFileSync(file, content);
-    console.log(`Updated asset URLs in ${file}`);
   }
-  console.log('Finished replacing asset URLs in src directory.');
+
+  console.log('Finished replacing asset URLs in src and public directories.');
+}
+
+function checkAndCorrectOrder(filePath) {
+  console.log(`Checking and correcting import/const order in ${filePath}...`);
+  let content = fs.readFileSync(filePath, 'utf8');
+  
+  const lines = content.split('\n');
+  const topImports = [];
+  const topConstants = [];
+  const rest = [];
+  
+  let processingTopLevel = true;
+  
+  for (const line of lines) {
+    if (processingTopLevel) {
+      if (line.trim().startsWith('import')) {
+        topImports.push(line);
+      } else if (line.trim().startsWith('const') && line.includes('=')) {
+        topConstants.push(line);
+      } else if (line.trim() === '') {
+        // Skip empty lines at the top
+        if (topImports.length > 0 || topConstants.length > 0) {
+          topImports.push(line);
+        }
+      } else {
+        // We've reached the end of top-level imports and constants
+        processingTopLevel = false;
+        rest.push(line);
+      }
+    } else {
+      rest.push(line);
+    }
+  }
+  
+  // Add an empty line between imports and constants if needed
+  if (topImports.length > 0 && topConstants.length > 0 && topImports[topImports.length - 1].trim() !== '') {
+    topImports.push('');
+  }
+  
+  const correctedContent = [...topImports, ...topConstants, ...rest].join('\n');
+  
+  if (correctedContent !== content) {
+    fs.writeFileSync(filePath, correctedContent);
+    console.log(`Corrected import/const order in ${filePath}`);
+  } else {
+    console.log(`No corrections needed in ${filePath}`);
+  }
 }
 
 async function handlePublicAssets() {
