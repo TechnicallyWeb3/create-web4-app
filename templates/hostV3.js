@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path'); 
 
 const web3 = new Web3(`${process.env.INFURA_API}`);
-const contractAddress = process.env.CONTRACT_ADDRESS;
+const contractAddress = process.argv[2] || process.env.CONTRACT_ADDRESS;
 const contractABI = [
 	{
 		"inputs": [
@@ -162,6 +162,9 @@ async function addWebsiteInChunks(path, content, contentType) {
 }
 
 async function uploadWebsite() {
+
+    console.log(contractAddress);
+    
     // Read the index.html file
     const indexPath = path.join('build', 'index.html');
     let indexContent = fs.readFileSync(indexPath, 'utf8');

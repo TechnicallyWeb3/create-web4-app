@@ -19,10 +19,13 @@ execSync(`npx create-react-app ${projectName}`, { stdio: 'inherit' });
 // Copy template files
 const templateDir = path.join(__dirname, '..', 'templates');
 const projectDir = path.join(process.cwd(), projectName);
+const deploymentDir = path.join(projectDir, 'deployment');
 
-['prebuild.js', 'hostV3.js'].forEach(file => {
-  fs.copySync(path.join(templateDir, file), path.join(projectDir, file));
-});
+// Create deployment directory
+fs.mkdirSync(deploymentDir);
+
+// Copy all files from templates to deployment directory
+fs.copySync(templateDir, deploymentDir);
 
 // Create .env file
 fs.copySync(path.join(templateDir, '.env.template'), path.join(projectDir, '.env'));
@@ -43,6 +46,13 @@ packageJson.scripts = {
   ...packageJson.scripts,
   ...templatePackageJson.scripts
 };
+
+// Update script paths
+for (const [key, value] of Object.entries(packageJson.scripts)) {
+  if (value.startsWith('node ')) {
+    packageJson.scripts[key] = value.replace('node ', 'node deployment/');
+  }
+}
 
 fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
 

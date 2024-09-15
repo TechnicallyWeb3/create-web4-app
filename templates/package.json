@@ -8,21 +8,24 @@
     "@testing-library/user-event": "^13.5.0",
     "axios": "^1.7.7",
     "dotenv": "^16.4.5",
+    "ethers": "^6.13.2",
     "glob": "^11.0.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-scripts": "5.0.1",
+    "solc": "^0.8.27",
     "web-vitals": "^2.1.4",
     "web3": "^4.12.1"
   },
   "scripts": {
     "start": "react-scripts start",
-    "prebuild": "node prebuild.js",
     "build": "react-scripts build",
-    "postbuild": "node hostV3.js",
-    "deploy": "npm run prebuild && npm run postbuild",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "prebuild": "node deployment/prebuild.js",
+    "postbuild": "node deployment/hostV3.js",
+    "deploy-contract": "node deployment/deployContract.js",
+    "deploy": "node deployment/deployWrapper.js"
   },
   "eslintConfig": {
     "extends": [
