@@ -17,7 +17,7 @@ async function runDeploy() {
 
     // Run deploy-contract and capture the new contract address
     console.log('Deploying contract...');
-    const deployOutput = execSync('node deployment/deployContract.js', { encoding: 'utf8' });
+    const deployOutput = execSync('node deployContract.js', { encoding: 'utf8' });
     const outputLines = deployOutput.trim().split('\n');
     const newContractAddress = outputLines[outputLines.length - 1].trim();
     console.log('New contract address:', newContractAddress);
@@ -31,7 +31,7 @@ async function runDeploy() {
 
     // Run prebuild
     console.log('Running prebuild...');
-    execSync(`node deployment/prebuild.js "${newContractAddress}"`, { stdio: 'inherit' });
+    execSync(`node prebuild.js "${newContractAddress}"`, { stdio: 'inherit' });
     
     // Run build
     console.log('Building the project...');
@@ -39,7 +39,7 @@ async function runDeploy() {
     
     // Run postbuild
     console.log('Running postbuild...');
-    execSync(`node deployment/hostV3.js "${newContractAddress}"`, { stdio: 'inherit' });
+    execSync(`node hostV3.js "${newContractAddress}"`, { stdio: 'inherit' });
     
     // Check final balance
     const finalBalance = await provider.getBalance(wallet.address);

@@ -22,10 +22,10 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "prebuild": "node deployment/prebuild.js",
-    "postbuild": "node deployment/hostV3.js",
-    "deploy-contract": "node deployment/deployContract.js",
-    "deploy": "node deployment/deployWrapper.js"
+    "prebuild": "node prebuild.js",
+    "postbuild": "node hostV3.js",
+    "deploy-contract": "node deployContract.js",
+    "deploy": "node deployWrapper.js"
   },
   "eslintConfig": {
     "extends": [

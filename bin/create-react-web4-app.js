@@ -19,7 +19,7 @@ execSync(`npx create-react-app ${projectName}`, { stdio: 'inherit' });
 // Copy template files
 const templateDir = path.join(__dirname, '..', 'templates');
 const projectDir = path.join(process.cwd(), projectName);
-const deploymentDir = path.join(projectDir, 'deployment');
+const deploymentDir = path.join(projectDir, '');
 
 // Create deployment directory
 fs.mkdirSync(deploymentDir);

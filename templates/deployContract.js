@@ -14,7 +14,7 @@ if (!privateKey) {
 const wallet = new ethers.Wallet(privateKey, provider);
 
 // Read the Solidity source code
-const contractSource = fs.readFileSync(path.join(__dirname, 'WebsiteContractV3.sol'), 'utf8');
+const contractSource = fs.readFileSync('./WebsiteContractV3.sol', 'utf8');
 
 // Compile the contract
 function compileContract(source) {
