@@ -36,6 +36,38 @@ async function uploadToPinata(filePath) {
   }
 }
 
+async function processMatch(variableName, importPath, filePath) {
+  // Ignore CSS files
+  if (importPath.endsWith('.css') || importPath.endsWith('.scss') || importPath.endsWith('.sass')) {
+    return null;
+  }
+
+  if (!importPath.startsWith('http') && !importPath.startsWith('data:')) {
+    let absolutePath = path.resolve(path.dirname(filePath), importPath);
+    
+    // Check if the file exists, if not, try prepending 'src/'
+    if (!fs.existsSync(absolutePath)) {
+      absolutePath = path.resolve('src', importPath);
+    }
+
+    // Check common asset directories
+    const assetDirs = ['assets', 'images', 'media'];
+    for (const dir of assetDirs) {
+      if (!fs.existsSync(absolutePath)) {
+        absolutePath = path.resolve('src', dir, importPath);
+        if (fs.existsSync(absolutePath)) break;
+      }
+    }
+
+    if (fs.existsSync(absolutePath)) {
+      const ipfsHash = await uploadToPinata(absolutePath);
+      const ipfsUrl = `${pinataGateway}/ipfs/${ipfsHash}`;
+      return `const ${variableName} = "${ipfsUrl}";`;
+    }
+  }
+  return null;
+}
+
 async function processFile(filePath) {
   let content = fs.readFileSync(filePath, 'utf8');
   const importRegex = /import\s+(\w+)\s+from\s+['"](.+)['"];?/g;
@@ -44,37 +76,10 @@ async function processFile(filePath) {
   let match;
   const replacements = [];
 
-  const processMatch = async (variableName, importPath) => {
-    if (!importPath.startsWith('http') && !importPath.startsWith('data:')) {
-      let absolutePath = path.resolve(path.dirname(filePath), importPath);
-      
-      // Check if the file exists, if not, try prepending 'src/'
-      if (!fs.existsSync(absolutePath)) {
-        absolutePath = path.resolve('src', importPath);
-      }
-
-      // Check common asset directories
-      const assetDirs = ['assets', 'images', 'media'];
-      for (const dir of assetDirs) {
-        if (!fs.existsSync(absolutePath)) {
-          absolutePath = path.resolve('src', dir, importPath);
-          if (fs.existsSync(absolutePath)) break;
-        }
-      }
-
-      if (fs.existsSync(absolutePath)) {
-        const ipfsHash = await uploadToPinata(absolutePath);
-        const ipfsUrl = `${pinataGateway}/ipfs/${ipfsHash}`;
-        return `const ${variableName} = "${ipfsUrl}";`;
-      }
-    }
-    return null;
-  };
-
   // Process import statements
   while ((match = importRegex.exec(content)) !== null) {
     const [fullMatch, variableName, importPath] = match;
-    const newStatement = await processMatch(variableName, importPath);
+    const newStatement = await processMatch(variableName, importPath, filePath);
     if (newStatement) {
       replacements.push([fullMatch, newStatement]);
     }
@@ -83,7 +88,7 @@ async function processFile(filePath) {
   // Process const assignments
   while ((match = constRegex.exec(content)) !== null) {
     const [fullMatch, variableName, _, constPath] = match;
-    const newStatement = await processMatch(variableName, constPath);
+    const newStatement = await processMatch(variableName, constPath, filePath);
     if (newStatement) {
       replacements.push([fullMatch, newStatement]);
     }

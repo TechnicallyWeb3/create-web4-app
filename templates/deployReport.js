@@ -45,7 +45,7 @@ Deployment Report
 Date: ${new Date().toISOString()}
 
 Total time taken: ${totalTime.toFixed(2)} seconds
-Total cost of deployment: ${this.deploymentCost} ETH
+Total cost of deployment: ${this.deploymentCost} MATIC
 Total size of files uploaded to contract: ${(this.contractFilesSize / 1024).toFixed(2)} KB
 Total size of files uploaded to Pinata: ${(this.pinataFilesSize / 1024).toFixed(2)} KB
 Deployed Contract Address: ${this.deployedContractAddress}
