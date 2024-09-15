@@ -28,6 +28,7 @@ async function uploadToPinata(filePath) {
     });
     console.log(`File ${filePath} uploaded to Pinata. IPFS hash: ${response.data.IpfsHash}`);
     const fileSize = fs.statSync(filePath).size;
+    deployReport.addPinataFileSize(fileSize);
     return response.data.IpfsHash;
   } catch (error) {
     console.error(`Error uploading ${filePath} to Pinata:`, error);
@@ -35,63 +36,89 @@ async function uploadToPinata(filePath) {
   }
 }
 
-async function handlePublicAssets() {
-  console.log('Starting to handle public assets...');
-  const publicAssets = glob.sync('public/*.{ico,png,json}');
-  const replacements = {};
+async function processFile(filePath) {
+  let content = fs.readFileSync(filePath, 'utf8');
+  const importRegex = /import\s+(\w+)\s+from\s+['"](.+)['"];?/g;
+  const constRegex = /const\s+(\w+)\s*=\s*(['"])(.+)\2;?/g;
+  
+  let match;
+  const replacements = [];
 
-  for (const file of publicAssets) {
-    const hash = await uploadToPinata(file);
-    const pinataUrl = `${pinataGateway}/ipfs/${hash}`;
-    replacements[path.basename(file)] = pinataUrl;
+  const processMatch = async (variableName, importPath) => {
+    if (!importPath.startsWith('http') && !importPath.startsWith('data:')) {
+      let absolutePath = path.resolve(path.dirname(filePath), importPath);
+      
+      // Check if the file exists, if not, try prepending 'src/'
+      if (!fs.existsSync(absolutePath)) {
+        absolutePath = path.resolve('src', importPath);
+      }
+
+      // Check common asset directories
+      const assetDirs = ['assets', 'images', 'media'];
+      for (const dir of assetDirs) {
+        if (!fs.existsSync(absolutePath)) {
+          absolutePath = path.resolve('src', dir, importPath);
+          if (fs.existsSync(absolutePath)) break;
+        }
+      }
+
+      if (fs.existsSync(absolutePath)) {
+        const ipfsHash = await uploadToPinata(absolutePath);
+        const ipfsUrl = `${pinataGateway}/ipfs/${ipfsHash}`;
+        return `const ${variableName} = "${ipfsUrl}";`;
+      }
+    }
+    return null;
+  };
+
+  // Process import statements
+  while ((match = importRegex.exec(content)) !== null) {
+    const [fullMatch, variableName, importPath] = match;
+    const newStatement = await processMatch(variableName, importPath);
+    if (newStatement) {
+      replacements.push([fullMatch, newStatement]);
+    }
   }
 
-  console.log('Finished handling public assets.');
-  return replacements;
-}
-
-async function modifyIndexHtml(assetReplacements) {
-  console.log('Starting to modify index.html...');
-  const indexPath = 'public/index.html';
-  let content = fs.readFileSync(indexPath, 'utf8');
-  
-  // Replace script and style links
-  content = content.replace(
-    /<script src="(.*?)"><\/script>/g,
-    `<script src="web://${contractAddress}/script.js"></script>`
-  );
-  
-  content = content.replace(
-    /<link rel="stylesheet" href="(.*?)">/g,
-    `<link rel="stylesheet" href="web://${contractAddress}/styles.css">`
-  );
-
-  // Replace public asset URLs
-  for (const [oldUrl, newUrl] of Object.entries(assetReplacements)) {
-    content = content.replace(new RegExp(`%PUBLIC_URL%/${oldUrl}`, 'g'), newUrl);
+  // Process const assignments
+  while ((match = constRegex.exec(content)) !== null) {
+    const [fullMatch, variableName, _, constPath] = match;
+    const newStatement = await processMatch(variableName, constPath);
+    if (newStatement) {
+      replacements.push([fullMatch, newStatement]);
+    }
   }
 
-  fs.writeFileSync(indexPath, content);
-  console.log('Finished modifying index.html');
+  // Apply replacements
+  for (const [oldValue, newValue] of replacements.reverse()) {
+    content = content.replace(oldValue, newValue);
+  }
+
+  if (replacements.length > 0) {
+    fs.writeFileSync(filePath, content);
+    console.log(`Updated file: ${filePath}`);
+    return true; // Indicate that the file was modified
+  }
+  return false; // Indicate that the file was not modified
 }
 
-async function formatSourceFiles() {
-  const sourceFiles = glob.sync('src/**/*.{js,jsx,ts,tsx}');
-  const publicFiles = glob.sync('public/*.{js,html}');
-  
-  [...sourceFiles, ...publicFiles].forEach(file => {
-    checkAndCorrectOrder(file);
-  });
+async function processDirectory(directory) {
+  const files = glob.sync(`${directory}/**/*.{js,jsx,ts,tsx}`);
+  for (const file of files) {
+    const wasModified = await processFile(file);
+    if (wasModified) {
+      // Only run the code formatter if the file was modified
+      checkAndCorrectOrder(file);
+    }
+  }
 }
 
 async function main() {
   try {
-    const assetReplacements = await handlePublicAssets();
-    await modifyIndexHtml(assetReplacements);
-    await formatSourceFiles(); // Move this after modifyIndexHtml
+    await processDirectory('./src');
     console.log('Prebuild process completed successfully.');
   } catch (error) {
-    console.error('Error in prebuild process:', error);
+    console.error('An error occurred during the prebuild process:', error);
     process.exit(1);
   }
 }
