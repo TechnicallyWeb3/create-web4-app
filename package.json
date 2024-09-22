@@ -12,22 +12,25 @@
   "keywords": [
     "react",
     "web3",
-    "ethereum"
+    "ethereum",
+    "web4"
   ],
   "author": "0xdevChris",
   "license": "MIT",
   "dependencies": {
-    "fs-extra": "^10.0.0"
+    "fs-extra": "^10.0.0",
+    "chalk": "^4.1.2",
+    "commander": "^8.3.0"
   },
   "engines": {
     "node": ">=14"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/yourusername/create-react-web3-app.git"
+    "url": "git+https://github.com/yourusername/create-react-web4-app.git"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/create-react-web3-app/issues"
+    "url": "https://github.com/yourusername/create-react-web4-app/issues"
   },
-  "homepage": "https://github.com/yourusername/create-react-web3-app#readme"
+  "homepage": "https://github.com/yourusername/create-react-web4-app#readme"
 }

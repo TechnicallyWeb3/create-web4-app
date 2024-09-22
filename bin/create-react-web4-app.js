@@ -3,54 +3,70 @@
 const { execSync } = require('child_process');
 const fs = require('fs-extra');
 const path = require('path');
+const chalk = require('chalk');
+const { program } = require('commander');
 
-const projectName = process.argv[2];
+program
+  .version('1.2.5')
+  .argument('<project-directory>', 'Project directory name')
+  .parse(process.argv);
+
+const projectName = program.args[0];
 
 if (!projectName) {
-  console.error('Please specify the project name');
+  console.error('Please specify the project directory:');
+  console.log(
+    `  ${chalk.cyan('npx')} create-react-web4-app ${chalk.green('<project-directory>')}`
+  );
   process.exit(1);
 }
 
-console.log(`Creating a new React Web4 app: ${projectName}`);
+const currentDir = process.cwd();
+const projectDir = path.resolve(currentDir, projectName);
 
-// Create React App
-execSync(`npx create-react-app ${projectName}`, { stdio: 'inherit' });
+if (fs.existsSync(projectDir)) {
+  console.error(`The directory ${chalk.green(projectName)} already exists.`);
+  process.exit(1);
+}
+
+console.log(`Creating a new Web4 app in ${chalk.green(projectDir)}.`);
+
+// Create project directory
+fs.mkdirSync(projectDir, { recursive: true });
 
 // Copy template files
-const templateDir = path.join(__dirname, '..', 'templates');
-const projectDir = path.join(process.cwd(), projectName);
-
-// Copy all files from templates to project directory
+const templateDir = path.resolve(__dirname, '../templates');
 fs.copySync(templateDir, projectDir);
 
-// Create .env file
-fs.copySync(path.join(templateDir, '.env.template'), path.join(projectDir, '.env'));
+// Rename gitignore to .gitignore
+fs.renameSync(
+  path.join(projectDir, 'gitignore'),
+  path.join(projectDir, '.gitignore')
+);
 
-// Modify package.json
-const packageJsonPath = path.join(projectDir, 'package.json');
-const packageJson = require(packageJsonPath);
-const templatePackageJson = require(path.join(templateDir, 'package.json'));
+// Install dependencies
+console.log('Installing dependencies...');
+process.chdir(projectDir);
+execSync('npm install', { stdio: 'inherit' });
 
-// Merge dependencies
-packageJson.dependencies = {
-  ...packageJson.dependencies,
-  ...templatePackageJson.dependencies
-};
-
-// Merge scripts
-packageJson.scripts = {
-  ...packageJson.scripts,
-  ...templatePackageJson.scripts
-};
-
-fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
-
-console.log('React Web4 app created successfully!');
-console.log('To get started:');
-console.log(`  1. cd ${projectName}`);
-console.log('  2. Fill in the values in the .env file');
-console.log('  3. npm install');
-console.log('  4. npm start');
-console.log('');
-console.log('To deploy your app:');
-console.log('  npm run deploy');
+console.log(chalk.green('Success!') + ' Created ' + projectName + ' at ' + projectDir);
+console.log('Inside that directory, you can run several commands:');
+console.log();
+console.log(chalk.cyan('  npm start'));
+console.log('    Starts the development server.');
+console.log();
+console.log(chalk.cyan('  npm run build'));
+console.log('    Bundles the app into static files for production.');
+console.log();
+console.log(chalk.cyan('  npm run deploy-contract'));
+console.log('    Deploys the contract to Mumbai testnet.');
+console.log();
+console.log(chalk.cyan('  npm run upload-website'));
+console.log('    Uploads the website to the deployed contract.');
+console.log();
+console.log('We suggest that you begin by typing:');
+console.log();
+console.log(chalk.cyan('  cd'), projectName);
+console.log('  ' + chalk.cyan('npm start'));
+console.log();
+console.log('Happy hacking!');

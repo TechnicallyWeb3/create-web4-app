@@ -1,134 +1,26 @@
 require('dotenv').config();
-const {Web3} = require('web3');
-const fs = require('fs'); 
-const path = require('path'); 
+const hre = require("hardhat");
+const fs = require('fs');
+const path = require('path');
 
-const web3 = new Web3(`${process.env.INFURA_API}`);
 const contractAddress = process.argv[2] || process.env.CONTRACT_ADDRESS;
-const contractABI = [
-	{
-		"inputs": [
-			{
-				"internalType": "string",
-				"name": "path",
-				"type": "string"
-			}
-		],
-		"name": "removeResource",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "string",
-				"name": "path",
-				"type": "string"
-			},
-			{
-				"internalType": "string",
-				"name": "content",
-				"type": "string"
-			},
-			{
-				"internalType": "string",
-				"name": "contentType",
-				"type": "string"
-			}
-		],
-		"name": "setResourceChunk",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"stateMutability": "nonpayable",
-		"type": "constructor"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "string",
-				"name": "path",
-				"type": "string"
-			},
-			{
-				"internalType": "uint256",
-				"name": "index",
-				"type": "uint256"
-			}
-		],
-		"name": "getResourceChunk",
-		"outputs": [
-			{
-				"internalType": "string",
-				"name": "",
-				"type": "string"
-			},
-			{
-				"internalType": "string",
-				"name": "",
-				"type": "string"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "string",
-				"name": "path",
-				"type": "string"
-			}
-		],
-		"name": "getTotalChunks",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "owner",
-		"outputs": [
-			{
-				"internalType": "address",
-				"name": "",
-				"type": "address"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	}
-]
-const contract = new web3.eth.Contract(contractABI, contractAddress);
-const ownerAddress = '0x2DDE975DC63413dc35487E875d5681f3d9cf0dAE';
-const privateKey = process.env.PRIVATE_KEY;  
 
-const CHUNK_SIZE = 14576; 
+const CHUNK_SIZE = 14576;
 
-async function addWebsiteInChunks(path, content, contentType) {
+async function addWebsiteInChunks(contract, path, content, contentType) {
     try {
         const totalChunks = Math.ceil(content.length / CHUNK_SIZE);
         console.log(`Total chunks to upload for ${contentType}: ${totalChunks}`);
 
         // Get the total chunks already uploaded to compare
-        const existingTotalChunks = await contract.methods.getTotalChunks(path).call();
+        const existingTotalChunks = await contract.getTotalChunks(path);
 
         for (let i = 0; i < totalChunks; i++) {
             const chunk = content.substring(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
 
             // Check if chunk already exists before uploading
             if (i < existingTotalChunks) {
-                const existingChunk = await contract.methods.getResourceChunk(path, i).call();
+                const existingChunk = await contract.getResourceChunk(path, i);
                 if (existingChunk[0] === chunk && existingChunk[1] === contentType) {
                     console.log(`Chunk ${i + 1}/${totalChunks} is identical, skipping upload.`);
                     continue; // Skip if the chunk is already the same
@@ -136,20 +28,8 @@ async function addWebsiteInChunks(path, content, contentType) {
             }
 
             // If chunk is new or modified, upload it
-            const nonce = await web3.eth.getTransactionCount(ownerAddress, 'latest');
-            const gasPrice = await web3.eth.getGasPrice();
-            const gasEstimate = await contract.methods.setResourceChunk(path, chunk, contentType).estimateGas({ from: ownerAddress });
-
-            const tx = {
-                to: contractAddress,
-                data: contract.methods.setResourceChunk(path, chunk, contentType).encodeABI(),
-                gas: gasEstimate * BigInt(2),
-                gasPrice: gasPrice * BigInt(2),
-                nonce: nonce
-            };
-
-            const signedTx = await web3.eth.accounts.signTransaction(tx, privateKey);
-            const receipt = await web3.eth.sendSignedTransaction(signedTx.rawTransaction);
+            const tx = await contract.setResourceChunk(path, chunk, contentType);
+            const receipt = await tx.wait();
 
             // Log progress after each chunk is sent
             console.log(`Chunk ${i + 1}/${totalChunks} of ${contentType} uploaded successfully. Transaction hash: ${receipt.transactionHash}`);
@@ -162,6 +42,14 @@ async function addWebsiteInChunks(path, content, contentType) {
 }
 
 async function uploadWebsite() {
+    // Get the contract factory and ABI
+    const WebsiteContract = await hre.ethers.getContractFactory("WebsiteContract");
+    
+    // Get the signer
+    const [signer] = await hre.ethers.getSigners();
+
+    // Create contract instance
+    const contract = WebsiteContract.attach(contractAddress).connect(signer);
 
     console.log(contractAddress);
     
@@ -230,21 +118,25 @@ async function uploadWebsite() {
     }
 
     // Upload the files
-    await addWebsiteInChunks("/", htmlContent, "text/html");
+    await addWebsiteInChunks(contract, "/", htmlContent, "text/html");
     
     if (cssContent) {
-        await addWebsiteInChunks("/styles.css", cssContent, "text/css");
+        await addWebsiteInChunks(contract, "/styles.css", cssContent, "text/css");
     }
     
     if (jsContent) {
-        await addWebsiteInChunks("/script.js", jsContent, "application/javascript");
+        await addWebsiteInChunks(contract, "/script.js", jsContent, "application/javascript");
     }
 }
 
-uploadWebsite().then(() => {
-  console.log('Website uploaded successfully.');
-  process.exit(0);
-}).catch((error) => {
-  console.error('An error occurred during website upload:', error);
-  process.exit(1);
-});
+async function main() {
+    await uploadWebsite();
+    console.log('Website uploaded successfully.');
+}
+
+main()
+    .then(() => process.exit(0))
+    .catch((error) => {
+        console.error('An error occurred during website upload:', error);
+        process.exit(1);
+    });
