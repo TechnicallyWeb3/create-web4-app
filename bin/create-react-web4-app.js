@@ -39,10 +39,13 @@ const templateDir = path.resolve(__dirname, '../templates');
 fs.copySync(templateDir, projectDir);
 
 // Rename gitignore to .gitignore
-fs.renameSync(
-  path.join(projectDir, 'gitignore'),
-  path.join(projectDir, '.gitignore')
-);
+const gitignorePath = path.join(projectDir, 'gitignore');
+const dotGitignorePath = path.join(projectDir, '.gitignore');
+if (fs.existsSync(gitignorePath)) {
+  fs.renameSync(gitignorePath, dotGitignorePath);
+} else {
+  console.warn('gitignore file not found in template. Skipping renaming.');
+}
 
 // Install dependencies
 console.log('Installing dependencies...');
