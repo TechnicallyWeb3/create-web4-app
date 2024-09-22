@@ -1,6 +1,6 @@
 {
   "name": "create-react-web4-app",
-  "version": "1.2.5",
+  "version": "1.2.6",
   "description": "Create React apps with Web4 deployment scripts",
   "main": "index.js",
   "bin": {
