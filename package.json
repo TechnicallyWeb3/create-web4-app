@@ -1,10 +1,12 @@
 {
-  "name": "create-react-web4-app",
-  "version": "1.2.9",
+  "name": "cw4a",
+  "version": "1.3.0",
   "description": "Create React apps with Web4 deployment scripts",
   "main": "index.js",
   "bin": {
-    "create-react-web4-app": "bin/create-react-web4-app.js"
+    "create-react-web4-app": "bin/create-react-web4-app.js",
+    "create-web4-app": "bin/create-react-web4-app.js",
+    "cw4a": "bin/create-react-web4-app.js"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
